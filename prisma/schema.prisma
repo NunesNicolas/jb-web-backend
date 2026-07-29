@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserProfile {
+  admin
+  operations
+  finance
+}
+
+enum WorkStatus {
+  planning
+  in_progress
+  paused
+  completed
+  cancelled
+}
+
+enum ExpenseType {
+  material
+  labor
+  marketing
+  documentation
+}
+
+enum WorkAccessLevel {
+  contributor
+  head_moderator
+  viewer
+  advanced_viewer
+}
+
+enum ShareInviteStatus {
+  pending
+  accepted
+  cancelled
+}
+
+model User {
+  uuid         String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  phone        String
+  profile      UserProfile
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  works          Work[]
+  expenses       Expense[]
+  groupMembers   GroupMember[]
+  shareInvites   WorkShareInvite[] @relation("InviteCreator")
+  acceptedInvites WorkShareInvite[] @relation("InviteAcceptedBy")
+}
+
+model Work {
+  uuid           String     @id @default(uuid()) @db.Uuid
+  ownerUserUuid  String     @db.Uuid
+  name           String
+  address        String
+  longitude      Float
+  latitude       Float
+  estimatedPrice Float
+  finalBudget    Float      @default(0)
+  status         WorkStatus
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  owner        User              @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
+  expenses     Expense[]
+  groupWorks   GroupWork[]
+  shareInvites WorkShareInvite[]
+
+  @@index([ownerUserUuid])
+}
+
+model Expense {
+  uuid          String      @id @default(uuid()) @db.Uuid
+  ownerUserUuid String      @db.Uuid
+  workUuid      String      @db.Uuid
+  type          ExpenseType
+  name          String
+  description   String
+  amount        Float
+  uploadUrl     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  owner User @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
+  work  Work @relation(fields: [workUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([ownerUserUuid])
+  @@index([workUuid])
+}
+
+model Group {
+  uuid          String   @id @default(uuid()) @db.Uuid
+  ownerUserUuid String   @db.Uuid
+  name          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  members      GroupMember[]
+  works        GroupWork[]
+  shareInvites WorkShareInvite[]
+
+  @@index([ownerUserUuid])
+}
+
+model GroupMember {
+  uuid        String          @id @default(uuid()) @db.Uuid
+  groupUuid   String          @db.Uuid
+  userUuid    String          @db.Uuid
+  accessLevel WorkAccessLevel
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  group Group @relation(fields: [groupUuid], references: [uuid], onDelete: Cascade)
+  user  User  @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([groupUuid, userUuid])
+  @@index([userUuid])
+}
+
+model GroupWork {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  groupUuid String   @db.Uuid
+  workUuid  String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupUuid], references: [uuid], onDelete: Cascade)
+  work  Work  @relation(fields: [workUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([groupUuid, workUuid])
+  @@index([workUuid])
+}
+
+model WorkShareInvite {
+  uuid           String            @id @default(uuid()) @db.Uuid
+  token          String            @unique
+  groupUuid      String            @db.Uuid
+  workUuid       String            @db.Uuid
+  createdByUuid  String            @db.Uuid
+  acceptedByUuid String?           @db.Uuid
+  accessLevel    WorkAccessLevel
+  status         ShareInviteStatus @default(pending)
+  acceptedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  group      Group @relation(fields: [groupUuid], references: [uuid], onDelete: Cascade)
+  work       Work  @relation(fields: [workUuid], references: [uuid], onDelete: Cascade)
+  createdBy  User  @relation("InviteCreator", fields: [createdByUuid], references: [uuid], onDelete: Cascade)
+  acceptedBy User? @relation("InviteAcceptedBy", fields: [acceptedByUuid], references: [uuid], onDelete: SetNull)
+
+  @@index([groupUuid])
+  @@index([workUuid])
+  @@index([createdByUuid])
+}
