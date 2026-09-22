@@ -141,11 +141,11 @@ export class GroupsService {
     });
 
     if (!member) {
-      throw new NotFoundException('Membro nao encontrado.');
+      throw new NotFoundException('Membro não encontrado.');
     }
 
     if (member.userUuid === userUuid) {
-      throw new ForbiddenException('Voce nao pode remover a si mesmo.');
+      throw new ForbiddenException('Você não pode remover a si mesmo.');
     }
 
     await this.prisma.groupMember.delete({ where: { uuid: memberUuid } });
@@ -165,7 +165,7 @@ export class GroupsService {
     });
 
     if (!memberUser) {
-      throw new NotFoundException('Nenhum usuario cadastrado com este e-mail.');
+      throw new NotFoundException('Nenhum usuário cadastrado com este e-mail.');
     }
 
     const existingMember = await this.prisma.groupMember.findUnique({
@@ -175,7 +175,7 @@ export class GroupsService {
     });
 
     if (existingMember) {
-      throw new ConflictException('Este usuario ja participa do grupo.');
+      throw new ConflictException('Este usuário já participa do grupo.');
     }
 
     await this.prisma.groupMember.create({
@@ -195,14 +195,14 @@ export class GroupsService {
     });
 
     if (!membership) {
-      throw new NotFoundException('Grupo nao encontrado.');
+      throw new NotFoundException('Grupo não encontrado.');
     }
 
     if (
       (membership.accessLevel as WorkAccessLevel) !==
       WorkAccessLevel.HeadModerator
     ) {
-      throw new ForbiddenException('Voce nao pode gerenciar este grupo.');
+      throw new ForbiddenException('Você não pode gerenciar este grupo.');
     }
   }
 
@@ -231,7 +231,7 @@ export class GroupsService {
     });
 
     if (!work) {
-      throw new ForbiddenException('Voce nao pode compartilhar esta obra.');
+      throw new ForbiddenException('Você não pode compartilhar esta obra.');
     }
   }
 
@@ -239,7 +239,7 @@ export class GroupsService {
     const work = await this.findEditableWork(userUuid, workUuid);
 
     if (!work) {
-      throw new ForbiddenException('Voce nao pode editar esta obra.');
+      throw new ForbiddenException('Você não pode editar esta obra.');
     }
   }
 
@@ -291,7 +291,7 @@ export class GroupsService {
     });
 
     if (!group) {
-      throw new NotFoundException('Grupo nao encontrado.');
+      throw new NotFoundException('Grupo não encontrado.');
     }
 
     return group;

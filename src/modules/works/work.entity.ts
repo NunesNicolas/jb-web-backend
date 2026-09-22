@@ -16,6 +16,7 @@ export type WorkProps = {
   latitude: number;
   estimatedPrice: number;
   finalBudget: number;
+  coverImageUrl: string;
   status: WorkStatus;
 };
 
@@ -28,6 +29,7 @@ export class Work {
   latitude: number;
   estimatedPrice: number;
   finalBudget: number;
+  coverImageUrl: string;
   status: WorkStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +45,7 @@ export class Work {
     this.latitude = props.latitude;
     this.estimatedPrice = props.estimatedPrice;
     this.finalBudget = props.finalBudget;
+    this.coverImageUrl = props.coverImageUrl;
     this.status = props.status;
     this.createdAt = now;
     this.updatedAt = now;

@@ -49,7 +49,7 @@ export class GroupsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar grupos do usuario autenticado' })
+  @ApiOperation({ summary: 'Listar grupos do usuário autenticado' })
   @ApiOkResponse({ type: GroupResponseDto, isArray: true })
   findAll(@Req() request: AuthenticatedRequest): Promise<GroupResponseDto[]> {
     return this.groupsService.findAll(request.user.sub);
@@ -125,7 +125,7 @@ export class GroupsController {
   }
 
   @Post(':uuid/members')
-  @ApiOperation({ summary: 'Adicionar usuario ao grupo pelo e-mail' })
+  @ApiOperation({ summary: 'Adicionar usuário ao grupo pelo e-mail' })
   @ApiOkResponse({ type: GroupResponseDto })
   addMember(
     @Req() request: AuthenticatedRequest,

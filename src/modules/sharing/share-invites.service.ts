@@ -126,11 +126,11 @@ export class ShareInvitesService {
     });
 
     if (!invite) {
-      throw new NotFoundException('Convite nao encontrado.');
+      throw new NotFoundException('Convite não encontrado.');
     }
 
     if ((invite.status as ShareInviteStatus) !== ShareInviteStatus.Pending) {
-      throw new ConflictException('Este convite ja foi utilizado.');
+      throw new ConflictException('Este convite já foi utilizado.');
     }
 
     return invite;

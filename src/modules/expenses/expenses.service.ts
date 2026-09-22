@@ -130,7 +130,7 @@ export class ExpensesService {
     });
 
     if (!expense) {
-      throw new NotFoundException('Despesa nao encontrada.');
+      throw new NotFoundException('Despesa não encontrada.');
     }
 
     return expense;

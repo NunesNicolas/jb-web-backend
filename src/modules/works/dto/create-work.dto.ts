@@ -5,6 +5,7 @@ import {
   IsLongitude,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   Min,
 } from 'class-validator';
@@ -36,6 +37,15 @@ export class CreateWorkDto {
   @IsNumber()
   @Min(0)
   estimatedPrice: number;
+
+  @ApiProperty({
+    example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+    required: false,
+    description: 'Imagem de capa em Data URL ou URL pública.',
+  })
+  @IsString()
+  @IsOptional()
+  coverImageUrl?: string;
 
   @ApiProperty({ enum: WorkStatus, example: WorkStatus.InProgress })
   @IsEnum(WorkStatus)

@@ -38,7 +38,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Criar usuario' })
+  @ApiOperation({ summary: 'Criar usuário' })
   @ApiCreatedResponse({ type: UserResponseDto })
   create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     return this.usersService.create(createUserDto);
@@ -46,9 +46,9 @@ export class UsersController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login do usuario e geracao de JWT por 7 dias' })
+  @ApiOperation({ summary: 'Login do usuário e geracao de JWT por 7 dias' })
   @ApiOkResponse({ type: AuthResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Credenciais invalidas' })
+  @ApiUnauthorizedResponse({ description: 'Credenciais inválidas' })
   login(@Body() loginUserDto: LoginUserDto): Promise<AuthResponseDto> {
     return this.usersService.login(loginUserDto);
   }
@@ -56,7 +56,7 @@ export class UsersController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Listar usuarios' })
+  @ApiOperation({ summary: 'Listar usuários' })
   @ApiOkResponse({ type: UserResponseDto, isArray: true })
   findAll(): Promise<UserResponseDto[]> {
     return this.usersService.findAll();
@@ -65,7 +65,7 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Buscar usuario autenticado' })
+  @ApiOperation({ summary: 'Buscar usuário autenticado' })
   @ApiOkResponse({ type: UserResponseDto })
   findMe(@Req() request: AuthenticatedRequest): Promise<UserResponseDto> {
     return this.usersService.findMe(request.user.sub);
@@ -74,7 +74,7 @@ export class UsersController {
   @Get(':uuid')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Buscar usuario por UUID' })
+  @ApiOperation({ summary: 'Buscar usuário por UUID' })
   @ApiOkResponse({ type: UserResponseDto })
   findOne(@Param('uuid') uuid: string): Promise<UserResponseDto> {
     return this.usersService.findOne(uuid);
@@ -83,7 +83,7 @@ export class UsersController {
   @Patch(':uuid')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Atualizar usuario por UUID' })
+  @ApiOperation({ summary: 'Atualizar usuário por UUID' })
   @ApiOkResponse({ type: UserResponseDto })
   update(
     @Param('uuid') uuid: string,
@@ -96,7 +96,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Remover usuario por UUID' })
+  @ApiOperation({ summary: 'Remover usuário por UUID' })
   @ApiNoContentResponse()
   remove(@Param('uuid') uuid: string): Promise<void> {
     return this.usersService.remove(uuid);

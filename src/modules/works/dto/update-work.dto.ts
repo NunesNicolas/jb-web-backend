@@ -46,6 +46,14 @@ export class UpdateWorkDto {
   @IsOptional()
   finalBudget?: number;
 
+  @ApiPropertyOptional({
+    example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+    description: 'Imagem de capa em Data URL, URL pública ou vazio para remover.',
+  })
+  @IsString()
+  @IsOptional()
+  coverImageUrl?: string;
+
   @ApiPropertyOptional({ enum: WorkStatus, example: WorkStatus.InProgress })
   @IsEnum(WorkStatus)
   @IsOptional()

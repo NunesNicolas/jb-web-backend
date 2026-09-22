@@ -41,6 +41,21 @@ enum ShareInviteStatus {
   cancelled
 }
 
+enum TaskStatus {
+  backlog
+  todo
+  in_progress
+  review
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  critical
+}
+
 model User {
   uuid         String   @id @default(uuid()) @db.Uuid
   name         String
@@ -53,6 +68,7 @@ model User {
 
   works          Work[]
   expenses       Expense[]
+  tasks          Task[]
   groupMembers   GroupMember[]
   shareInvites   WorkShareInvite[] @relation("InviteCreator")
   acceptedInvites WorkShareInvite[] @relation("InviteAcceptedBy")
@@ -67,12 +83,14 @@ model Work {
   latitude       Float
   estimatedPrice Float
   finalBudget    Float      @default(0)
+  coverImageUrl  String     @default("")
   status         WorkStatus
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
   owner        User              @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
   expenses     Expense[]
+  tasks        Task[]
   groupWorks   GroupWork[]
   shareInvites WorkShareInvite[]
 
@@ -96,6 +114,28 @@ model Expense {
 
   @@index([ownerUserUuid])
   @@index([workUuid])
+}
+
+model Task {
+  uuid          String       @id @default(uuid()) @db.Uuid
+  ownerUserUuid String       @db.Uuid
+  workUuid      String?      @db.Uuid
+  title         String
+  description   String       @default("")
+  assignee      String       @default("")
+  dueDate       DateTime?
+  status        TaskStatus   @default(todo)
+  priority      TaskPriority @default(medium)
+  position      Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  owner User  @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
+  work  Work? @relation(fields: [workUuid], references: [uuid], onDelete: SetNull)
+
+  @@index([ownerUserUuid])
+  @@index([workUuid])
+  @@index([status, position])
 }
 
 model Group {

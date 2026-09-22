@@ -27,6 +27,7 @@ export class WorksService {
         latitude: createWorkDto.latitude,
         estimatedPrice: createWorkDto.estimatedPrice,
         finalBudget: 0,
+        coverImageUrl: createWorkDto.coverImageUrl?.trim() ?? '',
         status: createWorkDto.status,
       },
     });
@@ -60,6 +61,7 @@ export class WorksService {
       latitude: number;
       estimatedPrice: number;
       finalBudget: number;
+      coverImageUrl: string;
       status: typeof updateWorkDto.status;
     }> = {};
 
@@ -85,6 +87,10 @@ export class WorksService {
 
     if (updateWorkDto.finalBudget !== undefined) {
       data.finalBudget = updateWorkDto.finalBudget;
+    }
+
+    if (updateWorkDto.coverImageUrl !== undefined) {
+      data.coverImageUrl = updateWorkDto.coverImageUrl.trim();
     }
 
     if (updateWorkDto.status) {
@@ -116,7 +122,7 @@ export class WorksService {
     });
 
     if (!work) {
-      throw new NotFoundException('Obra nao encontrada.');
+      throw new NotFoundException('Obra não encontrada.');
     }
 
     return work;
@@ -161,6 +167,7 @@ export class WorksService {
       latitude: work.latitude,
       estimatedPrice: work.estimatedPrice,
       finalBudget: work.finalBudget,
+      coverImageUrl: work.coverImageUrl,
       status: work.status as WorkStatus,
       createdAt: work.createdAt,
       updatedAt: work.updatedAt,

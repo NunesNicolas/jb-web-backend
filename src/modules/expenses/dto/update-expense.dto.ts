@@ -29,7 +29,7 @@ export class UpdateExpenseDto {
 
   @ApiPropertyOptional({
     example: 'uploads/expenses/receipt-8fd4.jpg',
-    description: 'Link, codigo ou referencia do arquivo enviado.',
+    description: 'Link, código ou referência do arquivo enviado.',
   })
   @IsString()
   @IsOptional()

@@ -27,6 +27,12 @@ export class WorkResponseDto {
   @ApiProperty({ example: 515000 })
   finalBudget: number;
 
+  @ApiProperty({
+    example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+    description: 'Imagem de capa em Data URL ou URL pública.',
+  })
+  coverImageUrl: string;
+
   @ApiProperty({ enum: WorkStatus, example: WorkStatus.InProgress })
   status: WorkStatus;
 

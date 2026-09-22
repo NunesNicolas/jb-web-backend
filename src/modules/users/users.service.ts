@@ -31,7 +31,7 @@ export class UsersService {
     const normalizedEmail = this.normalizeEmail(createUserDto.email);
 
     if (await this.findByEmail(normalizedEmail)) {
-      throw new ConflictException('Ja existe um usuario com este e-mail.');
+      throw new ConflictException('Já existe um usuário com este e-mail.');
     }
 
     const user = await this.prisma.user.create({
@@ -106,7 +106,7 @@ export class UsersService {
       const emailOwner = await this.findByEmail(normalizedEmail);
 
       if (emailOwner && emailOwner.uuid !== uuid) {
-        throw new ConflictException('Ja existe um usuario com este e-mail.');
+        throw new ConflictException('Já existe um usuário com este e-mail.');
       }
 
       data.email = normalizedEmail;
@@ -145,7 +145,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { uuid } });
 
     if (!user) {
-      throw new NotFoundException('Usuario nao encontrado.');
+      throw new NotFoundException('Usuário não encontrado.');
     }
 
     return user;

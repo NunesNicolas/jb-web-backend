@@ -20,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Token JWT nao informado.');
+      throw new UnauthorizedException('Token JWT não informado.');
     }
 
     try {
