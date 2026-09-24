@@ -1,3 +1,4 @@
 export * from './create-task.dto';
+export * from './reorder-tasks.dto';
 export * from './task-response.dto';
 export * from './update-task.dto';

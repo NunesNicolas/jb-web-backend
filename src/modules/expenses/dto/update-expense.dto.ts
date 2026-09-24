@@ -1,13 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
-import { ExpenseType } from '../expense.entity';
+import { ExpenseStatus, ExpenseType } from '../expense.entity';
 
 export class UpdateExpenseDto {
   @ApiPropertyOptional({ enum: ExpenseType, example: ExpenseType.Material })
   @IsEnum(ExpenseType)
   @IsOptional()
   type?: ExpenseType;
+
+  @ApiPropertyOptional({ enum: ExpenseStatus, example: ExpenseStatus.Approved })
+  @IsEnum(ExpenseStatus)
+  @IsOptional()
+  status?: ExpenseStatus;
 
   @ApiPropertyOptional({ example: 'Compra de cimento' })
   @IsString()

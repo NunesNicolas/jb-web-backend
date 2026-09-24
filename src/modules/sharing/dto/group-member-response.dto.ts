@@ -20,4 +20,7 @@ export class GroupMemberResponseDto {
     example: WorkAccessLevel.Contributor,
   })
   accessLevel: WorkAccessLevel;
+
+  @ApiProperty({ format: 'uuid', isArray: true })
+  workUuids: string[];
 }

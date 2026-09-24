@@ -7,3 +7,4 @@ export * from './group-work-response.dto';
 export * from './link-work-to-group.dto';
 export * from './share-invite-response.dto';
 export * from './update-group.dto';
+export * from './update-group-member.dto';

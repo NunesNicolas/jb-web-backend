@@ -19,8 +19,8 @@ async function bootstrap() {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('JB Web Backend')
-    .setDescription('API para autenticação, usuários e módulos do JB Web.')
+    .setTitle('JB Management Backend')
+    .setDescription('API para autenticação, usuários e módulos do JB Management.')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

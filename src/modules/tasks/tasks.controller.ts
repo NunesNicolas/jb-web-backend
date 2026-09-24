@@ -23,7 +23,7 @@ import {
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
-import { CreateTaskDto, TaskResponseDto, UpdateTaskDto } from './dto';
+import { CreateTaskDto, ReorderTasksDto, TaskResponseDto, UpdateTaskDto } from './dto';
 import { TasksService } from './tasks.service';
 
 @ApiTags('tasks')
@@ -51,6 +51,16 @@ export class TasksController {
     @Query('workUuid') workUuid?: string,
   ): Promise<TaskResponseDto[]> {
     return this.tasksService.findAll(request.user.sub, workUuid);
+  }
+
+  @Patch('reorder/batch')
+  @ApiOperation({ summary: 'Reordenar tarefas em lote' })
+  @ApiOkResponse({ type: TaskResponseDto, isArray: true })
+  reorder(
+    @Req() request: AuthenticatedRequest,
+    @Body() reorderTasksDto: ReorderTasksDto,
+  ): Promise<TaskResponseDto[]> {
+    return this.tasksService.reorder(request.user.sub, reorderTasksDto);
   }
 
   @Get(':uuid')

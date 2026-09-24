@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 import { ExpenseType } from '../expense.entity';
 
@@ -28,11 +28,11 @@ export class CreateExpenseDto {
   @Min(0)
   amount: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'uploads/expenses/receipt-8fd4.jpg',
     description: 'Link, código ou referência do arquivo enviado.',
   })
   @IsString()
-  @IsNotEmpty()
-  uploadUrl: string;
+  @IsOptional()
+  uploadUrl?: string;
 }

@@ -27,6 +27,7 @@ import {
   CreateGroupDto,
   GroupResponseDto,
   LinkWorkToGroupDto,
+  UpdateGroupMemberDto,
   UpdateGroupDto,
 } from './dto';
 import { GroupsService } from './groups.service';
@@ -122,6 +123,23 @@ export class GroupsController {
     @Param('memberUuid') memberUuid: string,
   ): Promise<GroupResponseDto> {
     return this.groupsService.removeMember(request.user.sub, uuid, memberUuid);
+  }
+
+  @Patch(':uuid/members/:memberUuid')
+  @ApiOperation({ summary: 'Atualizar cargo e obras do membro' })
+  @ApiOkResponse({ type: GroupResponseDto })
+  updateMember(
+    @Req() request: AuthenticatedRequest,
+    @Param('uuid') uuid: string,
+    @Param('memberUuid') memberUuid: string,
+    @Body() updateGroupMemberDto: UpdateGroupMemberDto,
+  ): Promise<GroupResponseDto> {
+    return this.groupsService.updateMember(
+      request.user.sub,
+      uuid,
+      memberUuid,
+      updateGroupMemberDto,
+    );
   }
 
   @Post(':uuid/members')

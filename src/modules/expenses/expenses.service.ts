@@ -2,16 +2,22 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Expense as PrismaExpense } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationType } from '../notifications/notification.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 import { WorkAccessLevel } from '../sharing/access-level.entity';
 import { GroupsService } from '../sharing/groups.service';
+import { WorkEventType } from '../work-events/work-event.entity';
+import { WorkEventsService } from '../work-events/work-events.service';
 import { CreateExpenseDto, ExpenseResponseDto, UpdateExpenseDto } from './dto';
-import { ExpenseType } from './expense.entity';
+import { ExpenseStatus, ExpenseType } from './expense.entity';
 
 @Injectable()
 export class ExpensesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groupsService: GroupsService,
+    private readonly workEventsService: WorkEventsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -31,8 +37,24 @@ export class ExpensesService {
         name: createExpenseDto.name.trim(),
         description: createExpenseDto.description.trim(),
         amount: createExpenseDto.amount,
-        uploadUrl: createExpenseDto.uploadUrl.trim(),
+        uploadUrl: createExpenseDto.uploadUrl?.trim() ?? '',
       },
+    });
+
+    await this.workEventsService.create({
+      ownerUserUuid,
+      workUuid: expense.workUuid,
+      type: WorkEventType.ExpenseCreated,
+      title: 'Gasto registrado',
+      description: expense.name,
+      metadata: { expenseUuid: expense.uuid, amount: expense.amount },
+    });
+    await this.notificationsService.create({
+      ownerUserUuid: expense.ownerUserUuid,
+      workUuid: expense.workUuid,
+      type: NotificationType.ExpenseCreated,
+      title: 'Novo gasto pendente',
+      description: `${expense.name} precisa de revisão.`,
     });
 
     return this.toResponse(expense);
@@ -73,6 +95,7 @@ export class ExpensesService {
     );
     const data: Partial<{
       type: typeof updateExpenseDto.type;
+      status: typeof updateExpenseDto.status;
       name: string;
       description: string;
       amount: number;
@@ -81,6 +104,14 @@ export class ExpensesService {
 
     if (updateExpenseDto.type) {
       data.type = updateExpenseDto.type;
+    }
+
+    if (updateExpenseDto.status) {
+      await this.groupsService.assertCanAdvanceWork(
+        ownerUserUuid,
+        existingExpense.workUuid,
+      );
+      data.status = updateExpenseDto.status;
     }
 
     if (updateExpenseDto.name) {
@@ -103,6 +134,20 @@ export class ExpensesService {
       where: { uuid },
       data,
     });
+
+    if (
+      data.status === ExpenseStatus.Approved &&
+      existingExpense.status !== ExpenseStatus.Approved
+    ) {
+      await this.workEventsService.create({
+        ownerUserUuid,
+        workUuid: expense.workUuid,
+        type: WorkEventType.ExpenseApproved,
+        title: 'Gasto aprovado',
+        description: expense.name,
+        metadata: { expenseUuid: expense.uuid, amount: expense.amount },
+      });
+    }
 
     return this.toResponse(expense);
   }
@@ -147,15 +192,24 @@ export class ExpensesService {
                 members: {
                   some: {
                     userUuid: ownerUserUuid,
-                    accessLevel: {
-                      in: [
-                        WorkAccessLevel.Contributor,
-                        WorkAccessLevel.HeadModerator,
-                        WorkAccessLevel.Viewer,
-                        WorkAccessLevel.AdvancedViewer,
-                      ],
-                    },
+                    accessLevel: WorkAccessLevel.HeadModerator,
                   },
+                },
+              },
+            },
+          },
+        },
+        {
+          memberAccesses: {
+            some: {
+              member: {
+                userUuid: ownerUserUuid,
+                accessLevel: {
+                  in: [
+                    WorkAccessLevel.Contributor,
+                    WorkAccessLevel.Viewer,
+                    WorkAccessLevel.AdvancedViewer,
+                  ],
                 },
               },
             },
@@ -171,6 +225,7 @@ export class ExpensesService {
       ownerUserUuid: expense.ownerUserUuid,
       workUuid: expense.workUuid,
       type: expense.type as ExpenseType,
+      status: expense.status as ExpenseStatus,
       name: expense.name,
       description: expense.description,
       amount: expense.amount,

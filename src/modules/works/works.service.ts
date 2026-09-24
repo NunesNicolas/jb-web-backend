@@ -4,6 +4,10 @@ import { Work as PrismaWork } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WorkAccessLevel } from '../sharing/access-level.entity';
 import { GroupsService } from '../sharing/groups.service';
+import { NotificationType } from '../notifications/notification.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { WorkEventType } from '../work-events/work-event.entity';
+import { WorkEventsService } from '../work-events/work-events.service';
 import { CreateWorkDto, UpdateWorkDto, WorkResponseDto } from './dto';
 import { WorkStatus } from './work.entity';
 
@@ -12,6 +16,8 @@ export class WorksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groupsService: GroupsService,
+    private readonly workEventsService: WorkEventsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -30,6 +36,14 @@ export class WorksService {
         coverImageUrl: createWorkDto.coverImageUrl?.trim() ?? '',
         status: createWorkDto.status,
       },
+    });
+
+    await this.workEventsService.create({
+      ownerUserUuid,
+      workUuid: work.uuid,
+      type: WorkEventType.WorkCreated,
+      title: 'Obra criada',
+      description: work.name,
     });
 
     return this.toResponse(work);
@@ -53,7 +67,16 @@ export class WorksService {
     uuid: string,
     updateWorkDto: UpdateWorkDto,
   ): Promise<WorkResponseDto> {
-    await this.groupsService.assertCanEditWork(ownerUserUuid, uuid);
+    const existingWork = await this.findEntityByUuid(ownerUserUuid, uuid);
+
+    if (
+      updateWorkDto.status &&
+      updateWorkDto.status !== existingWork.status
+    ) {
+      await this.groupsService.assertCanAdvanceWork(ownerUserUuid, uuid);
+    } else {
+      await this.groupsService.assertCanEditWork(ownerUserUuid, uuid);
+    }
     const data: Partial<{
       name: string;
       address: string;
@@ -102,6 +125,33 @@ export class WorksService {
       data,
     });
 
+    if (data.status && data.status !== existingWork.status) {
+      await this.workEventsService.create({
+        ownerUserUuid,
+        workUuid: uuid,
+        type: WorkEventType.StatusChanged,
+        title: 'Etapa alterada',
+        description: `${existingWork.status} -> ${data.status}`,
+        metadata: { from: existingWork.status, to: data.status },
+      });
+      await this.notificationsService.create({
+        ownerUserUuid: work.ownerUserUuid,
+        workUuid: uuid,
+        type: NotificationType.WorkStatusChanged,
+        title: 'Etapa da obra alterada',
+        description: `${work.name} agora está em ${data.status}.`,
+      });
+    } else if (Object.keys(data).length > 0) {
+      await this.workEventsService.create({
+        ownerUserUuid,
+        workUuid: uuid,
+        type: WorkEventType.WorkUpdated,
+        title: 'Obra atualizada',
+        description: work.name,
+        metadata: { fields: Object.keys(data) },
+      });
+    }
+
     return this.toResponse(work);
   }
 
@@ -139,15 +189,24 @@ export class WorksService {
                 members: {
                   some: {
                     userUuid: ownerUserUuid,
-                    accessLevel: {
-                      in: [
-                        WorkAccessLevel.Contributor,
-                        WorkAccessLevel.HeadModerator,
-                        WorkAccessLevel.Viewer,
-                        WorkAccessLevel.AdvancedViewer,
-                      ],
-                    },
+                    accessLevel: WorkAccessLevel.HeadModerator,
                   },
+                },
+              },
+            },
+          },
+        },
+        {
+          memberAccesses: {
+            some: {
+              member: {
+                userUuid: ownerUserUuid,
+                accessLevel: {
+                  in: [
+                    WorkAccessLevel.Contributor,
+                    WorkAccessLevel.Viewer,
+                    WorkAccessLevel.AdvancedViewer,
+                  ],
                 },
               },
             },

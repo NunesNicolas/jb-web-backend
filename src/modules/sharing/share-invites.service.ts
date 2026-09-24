@@ -88,7 +88,7 @@ export class ShareInvitesService {
         update: {},
       });
 
-      await prisma.groupMember.upsert({
+      const member = await prisma.groupMember.upsert({
         where: {
           groupUuid_userUuid: {
             groupUuid: invite.groupUuid,
@@ -103,6 +103,20 @@ export class ShareInvitesService {
         update: {
           accessLevel: invite.accessLevel,
         },
+      });
+
+      await prisma.groupMemberWork.upsert({
+        where: {
+          memberUuid_workUuid: {
+            memberUuid: member.uuid,
+            workUuid: invite.workUuid,
+          },
+        },
+        create: {
+          memberUuid: member.uuid,
+          workUuid: invite.workUuid,
+        },
+        update: {},
       });
 
       return prisma.workShareInvite.update({

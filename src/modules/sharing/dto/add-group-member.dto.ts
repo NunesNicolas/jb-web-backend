@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum } from 'class-validator';
+import { IsArray, IsEmail, IsEnum, IsOptional, IsUUID } from 'class-validator';
 
 import { WorkAccessLevel } from '../access-level.entity';
 
@@ -14,4 +14,10 @@ export class AddGroupMemberDto {
   })
   @IsEnum(WorkAccessLevel)
   accessLevel: WorkAccessLevel;
+
+  @ApiProperty({ format: 'uuid', isArray: true, required: false })
+  @IsArray()
+  @IsOptional()
+  @IsUUID('4', { each: true })
+  workUuids?: string[];
 }

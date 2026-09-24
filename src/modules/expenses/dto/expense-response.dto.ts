@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { ExpenseType } from '../expense.entity';
+import { ExpenseStatus, ExpenseType } from '../expense.entity';
 
 export class ExpenseResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -14,6 +14,9 @@ export class ExpenseResponseDto {
 
   @ApiProperty({ enum: ExpenseType, example: ExpenseType.Material })
   type: ExpenseType;
+
+  @ApiProperty({ enum: ExpenseStatus, example: ExpenseStatus.Pending })
+  status: ExpenseStatus;
 
   @ApiProperty({ example: 'Compra de cimento' })
   name: string;

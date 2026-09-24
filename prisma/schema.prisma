@@ -56,6 +56,37 @@ enum TaskPriority {
   critical
 }
 
+enum RevenueType {
+  sale
+  rent
+  other
+}
+
+enum ExpenseStatus {
+  pending
+  approved
+  rejected
+}
+
+enum WorkEventType {
+  work_created
+  work_updated
+  status_changed
+  expense_created
+  expense_approved
+  revenue_created
+  task_created
+  task_moved
+  task_done
+  attachment_uploaded
+}
+
+enum NotificationType {
+  task_due
+  expense_created
+  work_status_changed
+}
+
 model User {
   uuid         String   @id @default(uuid()) @db.Uuid
   name         String
@@ -68,7 +99,11 @@ model User {
 
   works          Work[]
   expenses       Expense[]
+  revenues       Revenue[]
   tasks          Task[]
+  attachments    Attachment[]
+  workEvents     WorkEvent[]
+  notifications  Notification[]
   groupMembers   GroupMember[]
   shareInvites   WorkShareInvite[] @relation("InviteCreator")
   acceptedInvites WorkShareInvite[] @relation("InviteAcceptedBy")
@@ -90,8 +125,12 @@ model Work {
 
   owner        User              @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
   expenses     Expense[]
+  revenues     Revenue[]
   tasks        Task[]
+  attachments  Attachment[]
+  events       WorkEvent[]
   groupWorks   GroupWork[]
+  memberAccesses GroupMemberWork[]
   shareInvites WorkShareInvite[]
 
   @@index([ownerUserUuid])
@@ -102,6 +141,7 @@ model Expense {
   ownerUserUuid String      @db.Uuid
   workUuid      String      @db.Uuid
   type          ExpenseType
+  status        ExpenseStatus @default(pending)
   name          String
   description   String
   amount        Float
@@ -114,6 +154,26 @@ model Expense {
 
   @@index([ownerUserUuid])
   @@index([workUuid])
+}
+
+model Revenue {
+  uuid          String      @id @default(uuid()) @db.Uuid
+  ownerUserUuid String      @db.Uuid
+  workUuid      String      @db.Uuid
+  type          RevenueType
+  name          String
+  description   String      @default("")
+  amount        Float
+  receivedAt    DateTime
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  owner User @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
+  work  Work @relation(fields: [workUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([ownerUserUuid])
+  @@index([workUuid])
+  @@index([receivedAt])
 }
 
 model Task {
@@ -136,6 +196,60 @@ model Task {
   @@index([ownerUserUuid])
   @@index([workUuid])
   @@index([status, position])
+}
+
+model Attachment {
+  uuid          String   @id @default(uuid()) @db.Uuid
+  ownerUserUuid String   @db.Uuid
+  workUuid      String?  @db.Uuid
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  storagePath   String
+  publicUrl     String
+  createdAt     DateTime @default(now())
+
+  owner User  @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
+  work  Work? @relation(fields: [workUuid], references: [uuid], onDelete: SetNull)
+
+  @@index([ownerUserUuid])
+  @@index([workUuid])
+}
+
+model WorkEvent {
+  uuid          String        @id @default(uuid()) @db.Uuid
+  ownerUserUuid String        @db.Uuid
+  workUuid      String        @db.Uuid
+  type          WorkEventType
+  title         String
+  description   String        @default("")
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+
+  owner User @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
+  work  Work @relation(fields: [workUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([ownerUserUuid])
+  @@index([workUuid])
+  @@index([createdAt])
+}
+
+model Notification {
+  uuid          String           @id @default(uuid()) @db.Uuid
+  ownerUserUuid String           @db.Uuid
+  workUuid      String?          @db.Uuid
+  type          NotificationType
+  title         String
+  description   String           @default("")
+  readAt        DateTime?
+  createdAt     DateTime         @default(now())
+
+  owner User @relation(fields: [ownerUserUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([ownerUserUuid])
+  @@index([workUuid])
+  @@index([readAt])
 }
 
 model Group {
@@ -162,9 +276,23 @@ model GroupMember {
 
   group Group @relation(fields: [groupUuid], references: [uuid], onDelete: Cascade)
   user  User  @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  workAccesses GroupMemberWork[]
 
   @@unique([groupUuid, userUuid])
   @@index([userUuid])
+}
+
+model GroupMemberWork {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  memberUuid String  @db.Uuid
+  workUuid   String  @db.Uuid
+  createdAt DateTime @default(now())
+
+  member GroupMember @relation(fields: [memberUuid], references: [uuid], onDelete: Cascade)
+  work   Work        @relation(fields: [workUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([memberUuid, workUuid])
+  @@index([workUuid])
 }
 
 model GroupWork {

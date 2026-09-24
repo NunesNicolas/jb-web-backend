@@ -13,12 +13,13 @@ import {
   AddGroupMemberDto,
   CreateGroupDto,
   GroupResponseDto,
+  UpdateGroupMemberDto,
   UpdateGroupDto,
 } from './dto';
 
 type GroupWithRelations = Prisma.GroupGetPayload<{
   include: {
-    members: { include: { user: true } };
+    members: { include: { user: true; workAccesses: true } };
     works: { include: { work: true } };
   };
 }>;
@@ -178,12 +179,73 @@ export class GroupsService {
       throw new ConflictException('Este usuário já participa do grupo.');
     }
 
+    const workUuids = Array.from(new Set(addGroupMemberDto.workUuids ?? []));
+
+    await this.ensureWorksLinkedToGroup(userUuid, groupUuid, workUuids);
+
     await this.prisma.groupMember.create({
       data: {
         groupUuid,
         userUuid: memberUser.uuid,
         accessLevel: addGroupMemberDto.accessLevel,
+        workAccesses: {
+          create: workUuids.map((workUuid) => ({
+            workUuid,
+          })),
+        },
       },
+    });
+
+    return this.findOne(userUuid, groupUuid);
+  }
+
+  async updateMember(
+    userUuid: string,
+    groupUuid: string,
+    memberUuid: string,
+    updateGroupMemberDto: UpdateGroupMemberDto,
+  ): Promise<GroupResponseDto> {
+    await this.assertCanManageGroup(userUuid, groupUuid);
+
+    const member = await this.prisma.groupMember.findFirst({
+      where: { uuid: memberUuid, groupUuid },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Membro não encontrado.');
+    }
+
+    await this.ensureWorksLinkedToGroup(
+      userUuid,
+      groupUuid,
+      updateGroupMemberDto.workUuids ?? [],
+    );
+
+    await this.prisma.$transaction(async (prisma) => {
+      await prisma.groupMember.update({
+        where: { uuid: memberUuid },
+        data: {
+          ...(updateGroupMemberDto.accessLevel
+            ? { accessLevel: updateGroupMemberDto.accessLevel }
+            : {}),
+        },
+      });
+
+      if (updateGroupMemberDto.workUuids) {
+        await prisma.groupMemberWork.deleteMany({
+          where: { memberUuid },
+        });
+
+        if (updateGroupMemberDto.workUuids.length > 0) {
+          await prisma.groupMemberWork.createMany({
+            data: updateGroupMemberDto.workUuids.map((workUuid) => ({
+              memberUuid,
+              workUuid,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
     });
 
     return this.findOne(userUuid, groupUuid);
@@ -235,12 +297,33 @@ export class GroupsService {
     }
   }
 
+  private async ensureWorksLinkedToGroup(
+    userUuid: string,
+    groupUuid: string,
+    workUuids: string[],
+  ) {
+    await Promise.all(
+      Array.from(new Set(workUuids)).map(async (workUuid) => {
+        await this.assertCanShareWork(userUuid, workUuid);
+        await this.prisma.groupWork.upsert({
+          where: { groupUuid_workUuid: { groupUuid, workUuid } },
+          create: { groupUuid, workUuid },
+          update: {},
+        });
+      }),
+    );
+  }
+
   async assertCanEditWork(userUuid: string, workUuid: string) {
     const work = await this.findEditableWork(userUuid, workUuid);
 
     if (!work) {
       throw new ForbiddenException('Você não pode editar esta obra.');
     }
+  }
+
+  async assertCanAdvanceWork(userUuid: string, workUuid: string) {
+    await this.assertCanShareWork(userUuid, workUuid);
   }
 
   async findEditableWork(
@@ -259,12 +342,15 @@ export class GroupsService {
                   members: {
                     some: {
                       userUuid,
-                      accessLevel: {
-                        in: [
-                          WorkAccessLevel.Contributor,
-                          WorkAccessLevel.HeadModerator,
-                        ],
-                      },
+                      OR: [
+                        { accessLevel: WorkAccessLevel.HeadModerator },
+                        {
+                          accessLevel: WorkAccessLevel.Contributor,
+                          workAccesses: {
+                            some: { workUuid },
+                          },
+                        },
+                      ],
                     },
                   },
                 },
@@ -300,7 +386,7 @@ export class GroupsService {
   private includeRelations() {
     return {
       members: {
-        include: { user: true },
+        include: { user: true, workAccesses: true },
         orderBy: { createdAt: 'asc' },
       },
       works: {
@@ -324,6 +410,7 @@ export class GroupsService {
           name: member.user.name,
           email: member.user.email,
           accessLevel: member.accessLevel as WorkAccessLevel,
+          workUuids: member.workAccesses?.map((access) => access.workUuid) ?? [],
         })) ?? [],
       works:
         groupWithRelations.works?.map(({ work }) => ({

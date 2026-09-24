@@ -3,7 +3,9 @@ import { Task as PrismaTask, Work as PrismaWork } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { GroupsService } from '../sharing/groups.service';
-import { CreateTaskDto, TaskResponseDto, UpdateTaskDto } from './dto';
+import { WorkEventType } from '../work-events/work-event.entity';
+import { WorkEventsService } from '../work-events/work-events.service';
+import { CreateTaskDto, ReorderTasksDto, TaskResponseDto, UpdateTaskDto } from './dto';
 import { TaskPriority, TaskStatus } from './task.entity';
 
 type TaskWithWork = PrismaTask & { work: PrismaWork | null };
@@ -13,6 +15,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groupsService: GroupsService,
+    private readonly workEventsService: WorkEventsService,
   ) {}
 
   async create(
@@ -44,6 +47,17 @@ export class TasksService {
       },
       include: { work: true },
     });
+
+    if (task.workUuid) {
+      await this.workEventsService.create({
+        ownerUserUuid,
+        workUuid: task.workUuid,
+        type: WorkEventType.TaskCreated,
+        title: 'Tarefa criada',
+        description: task.title,
+        metadata: { taskUuid: task.uuid, status: task.status },
+      });
+    }
 
     return this.toResponse(task);
   }
@@ -79,6 +93,11 @@ export class TasksService {
       await this.groupsService.assertCanEditWork(
         ownerUserUuid,
         updateTaskDto.workUuid,
+      );
+    } else if (existingTask.workUuid) {
+      await this.groupsService.assertCanEditWork(
+        ownerUserUuid,
+        existingTask.workUuid,
       );
     }
 
@@ -135,7 +154,79 @@ export class TasksService {
       include: { work: true },
     });
 
+    if (
+      task.workUuid &&
+      updateTaskDto.status &&
+      updateTaskDto.status !== existingTask.status
+    ) {
+      await this.workEventsService.create({
+        ownerUserUuid,
+        workUuid: task.workUuid,
+        type:
+          updateTaskDto.status === TaskStatus.Done
+            ? WorkEventType.TaskDone
+            : WorkEventType.TaskMoved,
+        title:
+          updateTaskDto.status === TaskStatus.Done
+            ? 'Tarefa concluída'
+            : 'Tarefa movimentada',
+        description: task.title,
+        metadata: {
+          taskUuid: task.uuid,
+          from: existingTask.status,
+          to: updateTaskDto.status,
+        },
+      });
+    }
+
     return this.toResponse(task);
+  }
+
+  async reorder(
+    ownerUserUuid: string,
+    reorderTasksDto: ReorderTasksDto,
+  ): Promise<TaskResponseDto[]> {
+    const taskUuids = reorderTasksDto.tasks.map((task) => task.uuid);
+    const existingTasks = await this.prisma.task.findMany({
+      where: { ownerUserUuid, uuid: { in: taskUuids } },
+    });
+    const existingTaskByUuid = new Map(
+      existingTasks.map((task) => [task.uuid, task]),
+    );
+
+    for (const task of reorderTasksDto.tasks) {
+      const existingTask = existingTaskByUuid.get(task.uuid);
+
+      if (!existingTask) {
+        continue;
+      }
+
+      const workUuid = task.workUuid || null;
+
+      if (workUuid) {
+        await this.groupsService.assertCanEditWork(ownerUserUuid, workUuid);
+      } else if (existingTask.workUuid) {
+        await this.groupsService.assertCanEditWork(
+          ownerUserUuid,
+          existingTask.workUuid,
+        );
+      }
+    }
+
+    await this.prisma.$transaction(
+      reorderTasksDto.tasks.map((task) =>
+        this.prisma.task.updateMany({
+          where: { uuid: task.uuid, ownerUserUuid },
+          data: {
+            status: task.status,
+            workUuid: task.workUuid || null,
+            position: task.position,
+          },
+        }),
+      ),
+    );
+
+    return this.findAll(ownerUserUuid);
   }
 
   async remove(ownerUserUuid: string, uuid: string): Promise<void> {
