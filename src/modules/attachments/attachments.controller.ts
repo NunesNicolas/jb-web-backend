@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Req,
@@ -35,7 +37,10 @@ export class AttachmentsController {
     @Req() request: AuthenticatedRequest,
     @Body() createAttachmentDto: CreateAttachmentDto,
   ): Promise<AttachmentResponseDto> {
-    return this.attachmentsService.create(request.user.sub, createAttachmentDto);
+    return this.attachmentsService.create(
+      request.user.sub,
+      createAttachmentDto,
+    );
   }
 
   @Get(':uuid/content')
@@ -52,5 +57,15 @@ export class AttachmentsController {
 
     response.type(attachment.mimeType);
     response.sendFile(attachment.storagePath);
+  }
+
+  @Delete(':uuid')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Excluir anexo' })
+  remove(
+    @Req() request: AuthenticatedRequest,
+    @Param('uuid') uuid: string,
+  ): Promise<void> {
+    return this.attachmentsService.remove(request.user.sub, uuid);
   }
 }

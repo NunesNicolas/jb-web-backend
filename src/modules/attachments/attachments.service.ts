@@ -1,11 +1,12 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Attachment as PrismaAttachment } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, unlink, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -85,7 +86,10 @@ export class AttachmentsService {
     return this.toResponse(updatedAttachment);
   }
 
-  async findContent(ownerUserUuid: string, uuid: string): Promise<PrismaAttachment> {
+  async findContent(
+    ownerUserUuid: string,
+    uuid: string,
+  ): Promise<PrismaAttachment> {
     const attachment = await this.prisma.attachment.findFirst({
       where: {
         uuid,
@@ -130,6 +134,39 @@ export class AttachmentsService {
     }
 
     return attachment;
+  }
+
+  async remove(ownerUserUuid: string, uuid: string): Promise<void> {
+    const attachment = await this.prisma.attachment.findUnique({
+      where: { uuid },
+    });
+
+    if (!attachment) {
+      throw new NotFoundException('Anexo não encontrado.');
+    }
+
+    if (attachment.workUuid) {
+      await this.groupsService.assertCanEditWork(
+        ownerUserUuid,
+        attachment.workUuid,
+      );
+    } else if (attachment.ownerUserUuid !== ownerUserUuid) {
+      throw new ForbiddenException('Você não pode excluir este anexo.');
+    }
+
+    await this.prisma.workEvent.deleteMany({
+      where: {
+        type: WorkEventType.AttachmentUploaded,
+        metadata: {
+          path: ['attachmentUuid'],
+          equals: attachment.uuid,
+        },
+      },
+    });
+
+    await this.prisma.attachment.delete({ where: { uuid } });
+
+    await unlink(attachment.storagePath).catch(() => undefined);
   }
 
   private parseDataUrl(dataUrl: string) {
