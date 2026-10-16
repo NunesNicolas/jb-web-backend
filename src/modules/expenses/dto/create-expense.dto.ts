@@ -18,10 +18,10 @@ export class CreateExpenseDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 'Compra de 40 sacos para alvenaria do bloco A.' })
+  @ApiPropertyOptional({ example: 'Compra de 40 sacos para alvenaria do bloco A.' })
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @ApiProperty({ example: 1850.75, minimum: 0 })
   @IsNumber()

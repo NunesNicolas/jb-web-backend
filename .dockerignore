@@ -1,6 +1,7 @@
 node_modules
 dist
 coverage
+storage
 npm-debug.log
 .env
 .env.*

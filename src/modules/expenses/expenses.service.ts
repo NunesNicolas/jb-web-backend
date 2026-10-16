@@ -35,7 +35,7 @@ export class ExpensesService {
         workUuid: createExpenseDto.workUuid,
         type: createExpenseDto.type,
         name: createExpenseDto.name.trim(),
-        description: createExpenseDto.description.trim(),
+        description: createExpenseDto.description?.trim() ?? '',
         amount: createExpenseDto.amount,
         uploadUrl: createExpenseDto.uploadUrl?.trim() ?? '',
       },
@@ -118,8 +118,8 @@ export class ExpensesService {
       data.name = updateExpenseDto.name.trim();
     }
 
-    if (updateExpenseDto.description) {
-      data.description = updateExpenseDto.description.trim();
+    if (updateExpenseDto.description !== undefined) {
+      data.description = updateExpenseDto.description?.trim() ?? '';
     }
 
     if (updateExpenseDto.amount !== undefined) {
